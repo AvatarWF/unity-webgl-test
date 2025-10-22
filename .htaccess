@@ -1,0 +1,52 @@
+# Unity WebGL friendly .htaccess for Apache (HostGator)
+# - ensures correct MIME types
+# - serves pre-compressed .br/.gz files when supported
+# - sets long cache times for build assets
+
+<IfModule mod_mime.c>
+  AddType application/wasm .wasm
+  AddType application/octet-stream .data
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Allow CORS if you need cross-origin requests
+  Header set Access-Control-Allow-Origin "*"
+</IfModule>
+
+# Serve Brotli (.br) if client supports it
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # If browser accepts br and .br file exists, serve it with proper header
+  RewriteCond %{HTTP:Accept-Encoding} br
+  RewriteCond %{REQUEST_FILENAME}.br -f
+  RewriteRule ^(.*)$ $1.br [L]
+
+  # If browser accepts gzip and .gz exists, serve it
+  RewriteCond %{HTTP:Accept-Encoding} gzip
+  RewriteCond %{REQUEST_FILENAME}.gz -f
+  RewriteRule ^(.*)$ $1.gz [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Add encoding header for files served with .br/.gz extension
+  <FilesMatch "\.br$">
+    Header set Content-Encoding br
+    Header set Content-Type application/octet-stream
+  </FilesMatch>
+  <FilesMatch "\.gz$">
+    Header set Content-Encoding gzip
+    Header set Content-Type application/octet-stream
+  </FilesMatch>
+</IfModule>
+
+# Caching for build assets (long cache)
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType application/wasm "access plus 1 year"
+  ExpiresByType application/octet-stream "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType text/css "access plus 1 year"
+</IfModule>
+
+# Prevent directory listing
+Options -Indexes
